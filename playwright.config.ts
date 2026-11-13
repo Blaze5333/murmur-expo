@@ -8,12 +8,29 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    channel: 'chrome',
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
-    { name: 'desktop', use: { viewport: { width: 1440, height: 1050 } } },
+    {
+      name: 'mobile',
+      use: {
+        ...devices['iPhone 13'],
+        defaultBrowserType: 'chromium',
+        channel: 'chrome',
+      },
+    },
+    {
+      name: 'safari',
+      use: { ...devices['iPhone 13'], browserName: 'webkit', channel: '' },
+    },
+    {
+      name: 'desktop',
+      use: { channel: 'chrome', viewport: { width: 1440, height: 1050 } },
+    },
   ],
-  webServer: { command: 'bun run preview', url: 'http://127.0.0.1:4173', reuseExistingServer: true },
+  webServer: {
+    command: 'bun run preview',
+    url: 'http://127.0.0.1:4173',
+    reuseExistingServer: true,
+  },
 });

@@ -1,46 +1,74 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { loadHistory, saveHistory } from '../storage/chatStorage';
+import { createMessage, type ChatMessage } from '../types/chat';
 
-export type Stage = 'idle' | 'listening' | 'thinking' | 'responding' | 'replied';
-export const VOICE_PROMPT = 'Help me slow down for a moment.';
-export const SUGGESTIONS = ['Find my focus', 'Talk it out', 'A fresh perspective'];
+export type Stage = 'idle' | 'listening' | 'thinking';
+export const VOICE_PROMPT = 'Help me make a plan for today.';
+export const SUGGESTIONS = [
+  'Make a plan for today',
+  'Think something through',
+  'Get a fresh perspective',
+];
 
 export function replyFor(text: string) {
-  if (/focus|work|busy/i.test(text)) {
-    return 'Let’s make a little room. Pick one thing that matters today. What would a small, good first step look like?';
+  if (/plan|focus|work|busy/i.test(text)) {
+    return 'Start with the one thing you most want to finish today. Break it into a step you can do in 20 minutes, and give that step your full attention. What would you start with?';
   }
   if (/perspective|inspir|stuck/i.test(text)) {
-    return 'Try looking at it with a little curiosity. If a friend were in your shoes, what would you want them to hear?';
+    return 'Try describing the situation as if it belonged to a friend. What would you notice, and what would you tell them? A little distance can make the next step easier to see.';
   }
-  if (/slow|breath|moment|calm/i.test(text)) {
-    return 'Of course. Relax your shoulders. Take one slow breath. You don’t have to figure everything out at once. I’m here.';
-  }
-  return 'I’m here. We can take it one thought at a time. What’s the one thing you’d like to make a little lighter today?';
+  return 'Let’s work through it. What happened, what part is bothering you, and what would a useful next step look like? Start with whichever is easiest to put into words.';
 }
 
-function haptic(kind: 'tap' | 'success' = 'tap') {
-  if (Platform.OS === 'web') return;
-  const result = kind === 'success'
-    ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  void result.catch(() => { /* Haptics are optional on unsupported devices. */ });
-}
-
-/** One cancellable timeline owns every state transition and streamed word. */
 export function useConversation() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState(false);
   const [stage, setStage] = useState<Stage>('idle');
   const [transcript, setTranscript] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [reply, setReply] = useState('');
-  const [turn, setTurn] = useState(0);
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const busy = useRef(false);
 
-  const clearTimeline = useCallback(() => {
+  useEffect(() => {
+    let active = true;
+    loadHistory()
+      .then((history) => {
+        if (active) {
+          setMessages(history);
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setStorageError(true);
+          setReady(true);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    let active = true;
+    saveHistory(messages)
+      .then(() => {
+        if (active) setStorageError(false);
+      })
+      .catch(() => {
+        if (active) setStorageError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [messages, ready]);
+
+  const stopTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
     timers.current.clear();
   }, []);
+  useEffect(() => stopTimers, [stopTimers]);
 
   const later = useCallback((callback: () => void, delay: number) => {
     const timer = setTimeout(() => {
@@ -50,68 +78,75 @@ export function useConversation() {
     timers.current.add(timer);
   }, []);
 
-  useEffect(() => clearTimeline, [clearTimeline]);
-
-  const reset = useCallback(() => {
-    clearTimeline();
-    busy.current = false;
-    setStage('idle');
-    setTranscript('');
-    setPrompt('');
-    setReply('');
-    setTurn(value => value + 1);
-  }, [clearTimeline]);
-
-  const respond = useCallback((text: string) => {
-    clearTimeline();
-    busy.current = true;
-    setPrompt(text);
-    setTranscript('');
-    setReply('');
-    setStage('thinking');
-    haptic();
-    const words = replyFor(text).split(' ');
-    later(() => {
-      setStage('responding');
-      haptic('success');
-      words.forEach((_, index) => {
-        later(() => setReply(words.slice(0, index + 1).join(' ')), index * 58);
-      });
+  const respond = useCallback(
+    (text: string) => {
+      stopTimers();
+      busy.current = true;
+      setTranscript('');
+      setStage('thinking');
+      setMessages((previous) => [...previous, createMessage('user', text)]);
       later(() => {
-        setStage('replied');
+        setMessages((previous) => [
+          ...previous,
+          createMessage('assistant', replyFor(text)),
+        ]);
+        setStage('idle');
         busy.current = false;
-      }, words.length * 58 + 250);
-    }, 1850);
-  }, [clearTimeline, later]);
+      }, 1250);
+    },
+    [later, stopTimers],
+  );
+
+  const sendText = useCallback(
+    (value: string) => {
+      const text = value.trim();
+      if (!ready || !text || busy.current) return false;
+      respond(text);
+      return true;
+    },
+    [ready, respond],
+  );
 
   const startVoice = useCallback(() => {
-    if (busy.current) return;
-    clearTimeline();
+    if (!ready || busy.current) return;
     busy.current = true;
     setStage('listening');
-    setPrompt('');
-    setReply('');
     setTranscript('');
-    setTurn(value => value + 1);
-    haptic();
-    const words = VOICE_PROMPT.split(' ');
-    words.forEach((_, index) => {
-      later(() => setTranscript(words.slice(0, index + 1).join(' ')), 650 + index * 370);
+    VOICE_PROMPT.split(' ').forEach((_, index, words) => {
+      later(
+        () => setTranscript(words.slice(0, index + 1).join(' ')),
+        350 + index * 300,
+      );
     });
-    later(() => respond(VOICE_PROMPT), 4700);
-  }, [clearTimeline, later, respond]);
+    later(() => respond(VOICE_PROMPT), 3200);
+  }, [ready, later, respond]);
 
   const finishVoice = useCallback(() => {
     if (stage === 'listening') respond(VOICE_PROMPT);
   }, [stage, respond]);
 
-  const sendText = useCallback((value: string) => {
-    const text = value.trim().slice(0, 280);
-    if (!text || busy.current) return false;
-    setTurn(value => value + 1);
-    respond(text);
-    return true;
-  }, [respond]);
+  const cancel = useCallback(() => {
+    stopTimers();
+    busy.current = false;
+    setStage('idle');
+    setTranscript('');
+  }, [stopTimers]);
 
-  return { stage, transcript, prompt, reply, turn, startVoice, finishVoice, sendText, reset };
+  const clearHistory = useCallback(() => {
+    cancel();
+    setMessages([]);
+  }, [cancel]);
+
+  return {
+    messages,
+    ready,
+    storageError,
+    stage,
+    transcript,
+    sendText,
+    startVoice,
+    finishVoice,
+    cancel,
+    clearHistory,
+  };
 }

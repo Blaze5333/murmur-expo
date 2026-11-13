@@ -1,199 +1,490 @@
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowUp, ArrowUpRight, Check, Leaf, RotateCcw, X } from 'lucide-react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
-import { colors, fonts } from '../theme';
-import { type Stage, SUGGESTIONS, useConversation } from '../hooks/useConversation';
-import { Brand } from '../components/Brand';
-import { Touch } from '../components/Touch';
-import { VoiceOrb } from '../components/VoiceOrb';
+import {
+  ArrowDown,
+  ArrowUpRight,
+  Check,
+  MessageSquare,
+  Trash2,
+  X,
+} from 'lucide-react-native';
+import { useReducedMotion } from 'react-native-reanimated';
+import { useConversation, SUGGESTIONS } from '../hooks/useConversation';
+import { MessageBubble } from '../components/MessageBubble';
+import { Composer } from '../components/Composer';
 import { ThinkingDots, Waveform } from '../components/Waveform';
+import { fonts } from '../theme';
 
-const status: Record<Stage, string> = {
-  idle: 'A thought starts with a word.', listening: 'I’m listening.', thinking: 'A moment to reflect…',
-  responding: 'Finding the right words…', replied: 'A little lighter, together.',
-};
-
-export function ConversationScreen({ framed = false }: { framed?: boolean }) {
-  const conversation = useConversation();
-  const { stage, transcript, prompt, reply, turn, startVoice, finishVoice, sendText, reset } = conversation;
-  const [input, setInput] = useState('');
-  const [elapsed, setElapsed] = useState(0);
-  const [focused, setFocused] = useState(false);
+export function ConversationScreen() {
+  const {
+    messages,
+    ready,
+    storageError,
+    stage,
+    transcript,
+    sendText,
+    startVoice,
+    finishVoice,
+    cancel,
+    clearHistory,
+  } = useConversation();
   const insets = useSafeAreaInsets();
-  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const list = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [mountedAt] = useState(Date.now);
+  const following = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
   const reduced = useReducedMotion();
-  const listening = stage === 'listening';
-  const busy = listening || stage === 'thinking' || stage === 'responding';
-  const canSend = input.trim().length > 0 && !busy;
-  const enter = reduced ? FadeIn.duration(100) : FadeInDown.springify().damping(20).stiffness(185).mass(0.75);
 
-  useEffect(() => {
-    if (!listening) return;
-    const timer = setInterval(() => setElapsed(value => value + 1), 1000);
-    return () => clearInterval(timer);
-  }, [listening]);
+  function scrollToLatest(animated = !reduced) {
+    following.current = true;
+    list.current?.scrollToEnd({ animated });
+  }
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('autoplay') !== '1') return;
-    const timer = setTimeout(startVoice, 1200);
-    return () => clearTimeout(timer);
-  }, [startVoice]);
+  // Content changes cover new messages, a typing row, and restored history.
+  function onContentChange() {
+    if (!following.current) return;
+    const latest = messages[messages.length - 1];
+    const animate = !reduced && !!latest && latest.createdAt >= mountedAt;
+    requestAnimationFrame(() => {
+      if (following.current) list.current?.scrollToEnd({ animated: animate });
+    });
+  }
 
-  function submit(text = input) {
-    if (sendText(text)) {
-      setInput('');
-      Keyboard.dismiss();
-      inputRef.current?.blur();
+  function send(text: string) {
+    following.current = true;
+    return sendText(text);
+  }
+
+  function clear() {
+    const remove = () => {
+      following.current = true;
+      clearHistory();
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Clear the conversation saved on this device?'))
+        remove();
+    } else {
+      Alert.alert(
+        'Clear conversation?',
+        'This removes the messages saved on this device.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Clear', style: 'destructive', onPress: remove },
+        ],
+      );
     }
   }
 
-  function replay() {
-    reset();
-    setElapsed(0);
-    setInput('');
-    Keyboard.dismiss();
-  }
-
-  function beginVoice() {
-    setElapsed(0);
-    startVoice();
-  }
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !ready) return;
+    if (new URLSearchParams(window.location.search).get('autoplay') !== '1')
+      return;
+    const timer = setTimeout(startVoice, 1000);
+    return () => clearTimeout(timer);
+  }, [ready, startVoice]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
-      <View style={[styles.header, { paddingTop: framed ? 12 : Math.max(insets.top, 20) }]}>
-        <Brand small />
-        <Touch testID="reset-button" accessibilityRole="button" accessibilityLabel="Reset conversation" onPress={replay} style={styles.reset}>
-          <RotateCcw size={16} color={colors.muted} strokeWidth={1.6} />
-        </Touch>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      enabled={Platform.OS !== 'web'}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 18) }]}>
+        <View style={styles.identity}>
+          <View style={styles.logo}>
+            <MessageSquare size={22} color="#FFFFFF" strokeWidth={2.2} />
+          </View>
+          <View>
+            <Text style={styles.brand}>
+              murmur<Text style={styles.brandDot}>.</Text>
+            </Text>
+            <Text style={styles.headerNote}>A little room to talk</Text>
+          </View>
+        </View>
+        <Pressable
+          testID="reset-button"
+          accessibilityRole="button"
+          accessibilityLabel="Clear saved conversation"
+          onPress={clear}
+          disabled={!ready || messages.length === 0}
+          style={({ pressed }) => [
+            styles.clear,
+            pressed && styles.pressed,
+            messages.length === 0 && styles.dim,
+          ]}
+        >
+          <Trash2 size={17} color="#697384" strokeWidth={1.8} />
+        </Pressable>
       </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <View style={styles.eyebrowRow}><View style={styles.tinyDot} /><Text style={styles.eyebrow}>A MOMENT, JUST FOR YOU</Text></View>
-          <Text accessibilityRole="header" style={styles.title}>A little space{ '\n' }<Text style={styles.italic}>to think out loud.</Text></Text>
-          <Text style={styles.subtitle}>No rush. No perfect words. Just you.</Text>
+
+      {!ready ? (
+        <View style={styles.loading}>
+          <ActivityIndicator
+            color="#315BEE"
+            accessibilityLabel="Loading conversation"
+          />
         </View>
-
-        <VoiceOrb stage={stage} onPress={listening ? finishVoice : beginVoice} />
-
-        <View style={styles.statusArea}>
-          <View style={styles.waveRow}>
-            <Waveform active={listening || stage === 'responding'} />
-            {listening && <Text style={styles.timer}>00:{String(elapsed).padStart(2, '0')}</Text>}
-          </View>
-          <Animated.Text key={stage} entering={FadeIn.duration(300)} style={styles.status} accessibilityLiveRegion="polite" testID="status-label">
-            {status[stage]}
-          </Animated.Text>
-          <View style={styles.statusHint}>
-            {listening ? <Touch testID="cancel-button" accessibilityRole="button" accessibilityLabel="Cancel voice demo" onPress={replay} style={styles.cancel}>
-              <X size={11} color={colors.muted} /><Text style={styles.hintText}>Cancel</Text>
-            </Touch> : <Text style={styles.hintText}>{stage === 'idle' ? 'Tap the orb to try a voice conversation' : stage === 'replied' ? 'Tap the orb whenever you’re ready' : ' '}</Text>}
-          </View>
-        </View>
-
-        <Animated.View layout={LinearTransition.duration(320)} style={styles.conversation} testID="conversation">
-          {stage === 'idle' ? (
-            <Animated.View key={`welcome-${turn}`} entering={enter} exiting={FadeOut.duration(120)} style={styles.welcome}>
-              <View style={styles.assistantLabel}><Leaf size={13} color="#698656" strokeWidth={1.5} /><Text style={styles.speaker}>MURMUR</Text></View>
-              <Text style={styles.welcomeText}>You don’t have to have it all figured out.{ '\n' }Start wherever you are.</Text>
-            </Animated.View>
-          ) : listening ? (
-            <Animated.View key={`transcript-${turn}`} entering={FadeIn.duration(200)} style={styles.transcript}>
-              <Text style={styles.speaker}>YOUR WORDS, UNFOLDING</Text>
-              <Text style={styles.transcriptText} testID="transcript">{transcript || 'Take your time…'}<Text style={styles.cursor}> ▍</Text></Text>
-            </Animated.View>
-          ) : (
-            <View key={`turn-${turn}`} style={styles.messages}>
-              <Animated.View entering={enter} style={styles.userBubble} testID="user-bubble">
-                <Text style={styles.userText}>{prompt}</Text>
-                <Check size={12} color="#6F8862" strokeWidth={1.6} />
-              </Animated.View>
-              <Animated.View entering={reduced ? FadeIn.duration(100) : FadeInDown.delay(160).springify().damping(21).stiffness(170)} layout={LinearTransition.duration(220)} style={styles.assistantBubble}>
-                <View style={styles.assistantLabel}><Leaf size={13} color="#698656" strokeWidth={1.5} /><Text style={styles.speaker}>MURMUR</Text></View>
-                {stage === 'thinking' ? <ThinkingDots /> : <Text style={styles.replyText} testID="reply-text">{reply}<Text style={styles.cursor}>{stage === 'responding' ? ' ▍' : ''}</Text></Text>}
-              </Animated.View>
-            </View>
+      ) : (
+        <View style={styles.listArea}>
+          <ScrollView
+            ref={list}
+            testID="message-list"
+            contentContainerStyle={[
+              styles.messages,
+              messages.length === 0 && styles.emptyList,
+            ]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={onContentChange}
+            onLayout={() => {
+              if (following.current)
+                list.current?.scrollToEnd({ animated: false });
+            }}
+            scrollEventThrottle={100}
+            onScroll={(event) => {
+              const { contentOffset, layoutMeasurement, contentSize } =
+                event.nativeEvent;
+              const nearBottom =
+                contentSize.height -
+                  layoutMeasurement.height -
+                  contentOffset.y <
+                80;
+              following.current = nearBottom;
+              setAtBottom(nearBottom);
+            }}
+          >
+            {messages.length === 0 && (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <MessageSquare size={28} color="#315BEE" strokeWidth={1.8} />
+                </View>
+                <Text style={styles.title}>Let’s talk.</Text>
+                <Text style={styles.description}>
+                  A question, a rough idea, a busy day.{'\n'}Start with
+                  whatever’s on your mind.
+                </Text>
+                <Text style={styles.promptLabel}>A FEW PLACES TO START</Text>
+                {SUGGESTIONS.map((suggestion, index) => (
+                  <Pressable
+                    key={suggestion}
+                    testID={'suggestion-' + index}
+                    accessibilityRole="button"
+                    onPress={() => send(suggestion)}
+                    style={({ pressed }) => [
+                      styles.suggestion,
+                      pressed && styles.suggestionPressed,
+                    ]}
+                  >
+                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                    <ArrowUpRight size={17} color="#7B8595" />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {messages.length > 0 && (
+              <Text style={styles.historyLabel}>YOUR CONVERSATION</Text>
+            )}
+            {messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                animate={message.createdAt >= mountedAt}
+              />
+            ))}
+            {stage === 'thinking' ? (
+              <View style={styles.thinking}>
+                <ThinkingDots />
+                <Text testID="status-label" style={styles.thinkingText}>
+                  Murmur is typing
+                </Text>
+              </View>
+            ) : undefined}
+          </ScrollView>
+          {!atBottom && messages.length > 0 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Scroll to latest messages"
+              testID="latest-button"
+              onPress={() => scrollToLatest(false)}
+              style={styles.latest}
+            >
+              <ArrowDown size={15} color="#FFFFFF" />
+              <Text style={styles.latestText}>Latest messages</Text>
+            </Pressable>
           )}
-        </Animated.View>
+        </View>
+      )}
 
-        {stage === 'idle' && <View style={styles.suggestions}>
-          <Text style={styles.suggestionsLabel}>OR, START WITH A LITTLE NUDGE</Text>
-          <View style={styles.chips}>
-            {SUGGESTIONS.map((suggestion, index) => <Touch key={suggestion} testID={`suggestion-${index}`} accessibilityRole="button" onPress={() => submit(suggestion)} style={({ pressed }) => [styles.chip, pressed && styles.chipHover]}>
-              <Text style={styles.chipText}>{suggestion}</Text><ArrowUpRight size={12} color={colors.muted} />
-            </Touch>)}
+      {stage === 'listening' && (
+        <View style={styles.recording}>
+          <View style={styles.recordingTop}>
+            <Text testID="status-label" style={styles.recordingLabel}>
+              Voice preview · simulated
+            </Text>
+            <Pressable
+              testID="cancel-button"
+              accessibilityRole="button"
+              accessibilityLabel="Cancel voice demo"
+              onPress={cancel}
+              hitSlop={12}
+            >
+              <X size={18} color="#697384" />
+            </Pressable>
           </View>
-        </View>}
-      </ScrollView>
+          <View style={styles.recordingBody}>
+            <Waveform active />
+            <Text testID="transcript" style={styles.transcript}>
+              {transcript || 'Listening…'}
+            </Text>
+          </View>
+          <Pressable
+            testID="finish-voice-button"
+            accessibilityRole="button"
+            onPress={() => {
+              following.current = true;
+              finishVoice();
+            }}
+            style={styles.useVoice}
+          >
+            <Text style={styles.useVoiceText}>Use message</Text>
+            <Check size={15} color="#315BEE" />
+          </Pressable>
+        </View>
+      )}
 
-      <View style={[styles.footer, { paddingBottom: framed ? 12 : Math.max(insets.bottom, 16) }]}>
-        <View style={[styles.composer, focused && styles.composerFocused, busy && styles.composerBusy]}>
-          <TextInput ref={inputRef} testID="message-input" accessibilityLabel="Type a message" placeholder="Or put it into words…" placeholderTextColor="#8B9489"
-            value={input} onChangeText={setInput} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={styles.input}
-            editable={!busy} maxLength={280} onSubmitEditing={() => submit()} returnKeyType="send" blurOnSubmit />
-          <Touch testID="send-button" accessibilityRole="button" accessibilityLabel="Send message" accessibilityState={{ disabled: !canSend }} disabled={!canSend}
-            onPress={() => submit()} style={[styles.send, canSend && styles.sendActive]}>
-            <ArrowUp size={18} strokeWidth={1.8} color={canSend ? colors.paper : '#A4ADA0'} />
-          </Touch>
-        </View>
-        <View style={styles.demoNote}>
-          <View style={styles.demoDot} /><Text style={styles.demoText}>A voice interaction demo</Text>
-        </View>
+      <View
+        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      >
+        <Composer
+          ready={ready}
+          busy={stage !== 'idle'}
+          onSend={send}
+          onVoice={() => {
+            following.current = true;
+            startVoice();
+          }}
+          onCancel={cancel}
+        />
+        <Text
+          style={[styles.storageNote, storageError && styles.storageError]}
+          accessibilityLiveRegion="polite"
+        >
+          {storageError
+            ? 'History couldn’t be saved. Check your device storage.'
+            : 'Demo replies · Saved on this device'}
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, paddingBottom: 10 },
-  reset: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  scroll: { flex: 1 }, scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 18 },
-  hero: { alignItems: 'center', marginTop: 12 },
-  eyebrowRow: { flexDirection: 'row', gap: 7, alignItems: 'center', marginBottom: 13 },
-  tinyDot: { width: 4, height: 4, borderRadius: 3, backgroundColor: '#86A566' },
-  eyebrow: { fontFamily: fonts.semibold, fontSize: 8.5, letterSpacing: 1.65, color: colors.muted },
-  title: { fontFamily: fonts.display, fontSize: 39, lineHeight: 40, color: colors.ink, textAlign: 'center', letterSpacing: -0.8 },
-  italic: { fontFamily: fonts.italic, color: '#698254' },
-  subtitle: { fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 19, color: colors.muted, marginTop: 9 },
-  statusArea: { marginTop: -8, alignItems: 'center' },
-  waveRow: { height: 31, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  timer: { fontFamily: fonts.medium, fontSize: 9, fontVariant: ['tabular-nums'], color: '#748363', position: 'absolute', left: 175 },
-  status: { fontFamily: fonts.medium, fontSize: 12, color: colors.ink, lineHeight: 20, marginTop: 6 },
-  statusHint: { height: 26, justifyContent: 'center' },
-  hintText: { fontFamily: fonts.regular, fontSize: 10, color: colors.muted },
-  cancel: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8 },
-  conversation: { minHeight: 102, marginTop: 10, justifyContent: 'center' },
-  welcome: { paddingHorizontal: 19, paddingVertical: 17, backgroundColor: colors.paper, borderRadius: 20, borderBottomLeftRadius: 5, borderWidth: 1, borderColor: '#E9EBE2' },
-  assistantLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  speaker: { fontFamily: fonts.semibold, fontSize: 8, letterSpacing: 1.4, color: '#728267' },
-  welcomeText: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 21, color: colors.ink },
-  transcript: { minHeight: 100, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 15 },
-  transcriptText: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.ink, textAlign: 'center' },
-  cursor: { color: '#7E9C61' },
-  messages: { gap: 12 },
-  userBubble: { alignSelf: 'flex-end', maxWidth: '92%', backgroundColor: '#E4ECD9', borderRadius: 17, borderBottomRightRadius: 4, paddingHorizontal: 15, paddingVertical: 12, flexDirection: 'row', alignItems: 'flex-end', gap: 7 },
-  userText: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 19, color: colors.ink, flexShrink: 1 },
-  assistantBubble: { backgroundColor: colors.paper, borderWidth: 1, borderColor: '#E9EBE2', borderRadius: 19, borderBottomLeftRadius: 5, padding: 16, minHeight: 80 },
-  replyText: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 21, color: colors.ink },
-  suggestions: { marginTop: 14, gap: 8 },
-  suggestionsLabel: { fontFamily: fonts.medium, fontSize: 7.5, letterSpacing: 1.15, color: '#7C8774', textAlign: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 9, paddingHorizontal: 10, borderWidth: 1, borderColor: '#E0E5D8', borderRadius: 20 },
-  chipHover: { backgroundColor: '#EAF0E1', borderColor: '#A6B895' },
-  chipText: { fontFamily: fonts.medium, fontSize: 9.5, color: '#64745C' },
-  footer: { paddingHorizontal: 24, paddingTop: 12, backgroundColor: colors.canvas },
-  composer: { flexDirection: 'row', alignItems: 'center', height: 50, paddingLeft: 16, paddingRight: 7, borderWidth: 1, borderColor: '#DDE3D5', borderRadius: 26, backgroundColor: colors.paper },
-  composerFocused: { borderColor: '#809E68', boxShadow: '0px 0px 0px 3px rgba(128,158,104,0.1)' },
-  composerBusy: { opacity: 0.5 },
-  input: { flex: 1, minWidth: 0, fontFamily: fonts.regular, fontSize: 12, color: colors.ink, height: 46, outlineWidth: 0 },
-  send: { width: 34, height: 34, borderRadius: 18, backgroundColor: '#EFF2E9', alignItems: 'center', justifyContent: 'center' },
-  sendActive: { backgroundColor: colors.ink },
-  demoNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 13, paddingBottom: 3 },
-  demoDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#91A27C' },
-  demoText: { fontFamily: fonts.regular, fontSize: 8.5, color: '#829077' },
+  screen: { flex: 1, minHeight: 0, backgroundColor: '#FFFFFF' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingBottom: 17,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECEEF2',
+  },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  logo: {
+    width: 43,
+    height: 43,
+    borderRadius: 13,
+    backgroundColor: '#202B3D',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brand: {
+    fontFamily: fonts.bold,
+    fontWeight: '800',
+    fontSize: 23,
+    letterSpacing: -0.8,
+    color: '#191D24',
+  },
+  brandDot: { color: '#315BEE' },
+  headerNote: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: '#818996',
+    marginTop: 2,
+  },
+  clear: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  dim: { opacity: 0.35 },
+  pressed: { backgroundColor: '#F1F3F6' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  listArea: { flex: 1, minHeight: 0 },
+  messages: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 16 },
+  emptyList: { flexGrow: 1, justifyContent: 'center' },
+  empty: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    paddingTop: 20,
+    paddingBottom: 28,
+  },
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontFamily: fonts.bold,
+    fontWeight: '700',
+    fontSize: 36,
+    letterSpacing: -1.4,
+    color: '#191D24',
+  },
+  description: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#77808F',
+    marginTop: 12,
+    marginBottom: 35,
+  },
+  promptLabel: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 10,
+    letterSpacing: 1.25,
+    color: '#929AA7',
+    marginBottom: 12,
+  },
+  suggestion: {
+    minHeight: 54,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E8EE',
+    borderRadius: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 9,
+  },
+  suggestionPressed: { borderColor: '#BDC9F5', backgroundColor: '#F5F7FF' },
+  suggestionText: {
+    fontFamily: fonts.medium,
+    fontWeight: '500',
+    fontSize: 14,
+    color: '#414B5B',
+  },
+  historyLabel: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 10,
+    letterSpacing: 1.3,
+    color: '#929AA7',
+    marginBottom: 27,
+    textAlign: 'center',
+  },
+  thinking: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 16,
+  },
+  thinkingText: { fontFamily: fonts.medium, fontSize: 12, color: '#808998' },
+  latest: {
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#202B3D',
+    boxShadow: '0 3px 12px rgba(20,30,50,0.12)',
+  },
+  latestText: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  footer: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F1F4',
+  },
+  storageNote: {
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    textAlign: 'center',
+    color: '#929AA7',
+    marginTop: 10,
+    lineHeight: 16,
+  },
+  storageError: { color: '#AF5C28' },
+  recording: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#F5F7FF',
+    borderWidth: 1,
+    borderColor: '#DCE3FC',
+  },
+  recordingTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recordingLabel: {
+    fontFamily: fonts.medium,
+    fontWeight: '600',
+    fontSize: 12,
+    color: '#617198',
+  },
+  recordingBody: { alignItems: 'center', gap: 12, paddingVertical: 14 },
+  transcript: {
+    fontFamily: fonts.medium,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#29364B',
+    textAlign: 'center',
+  },
+  useVoice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    paddingTop: 6,
+  },
+  useVoiceText: {
+    fontFamily: fonts.semibold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: '#315BEE',
+  },
 });

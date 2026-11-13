@@ -20,14 +20,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "Murmur — a little space to think out loud",
-      "description": "A carefully made voice interaction. An Expo and Reanimated motion study.",
-      "themeColor": "#F7F6F2",
-      "backgroundColor": "#F7F6F2",
+      "name": "Murmur \u2014 Chat",
+      "description": "A clean Expo chat interaction with local history.",
+      "themeColor": "#FFFFFF",
+      "backgroundColor": "#FFFFFF",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-font"
-    ]
+    "plugins": []
   }
 }

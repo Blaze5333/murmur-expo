@@ -4,7 +4,7 @@
 
 https://murmur-voice-demo.vercel.app
 
-**13-second screen capture:** https://murmur-voice-demo.vercel.app/demo/murmur-demo.mp4
+**10-second screen capture:** https://murmur-voice-demo.vercel.app/demo/murmur-demo.mp4
 
 **Looping GIF:** https://murmur-voice-demo.vercel.app/demo/murmur-demo.gif
 
@@ -12,11 +12,11 @@ https://murmur-voice-demo.vercel.app
 
 ## Suggested description
 
-I built Murmur, a small voice-chat interaction in Expo using TypeScript and Reanimated. It moves from a breathing microphone orb to a listening waveform, unfolding transcript, thinking indicator, and animated reply. The focus was keeping the motion calm and the transitions continuous. The demo supports typed prompts, cancellation, replay, and reduced motion. It uses a scripted conversation so anyone can try the complete experience without microphone permissions or an API key.
+I built Murmur, an Expo chat screen focused on interaction quality: subtle message entrances, a responsive composer, typing feedback, and smooth scrolling. Conversations are saved locally and restored after refresh. The mobile layout follows the visible viewport so the keyboard does not cover the composer. I kept the code small and separated conversation state, storage, rendering, and viewport handling. Replies and the voice preview are scripted, keeping the demo easy to review without API keys.
 
 ## Verification
 
-The permanent Vercel app, MP4, and GIF were verified to open publicly without sign-in. A prompt/reply interaction passed in unauthenticated Chrome with no browser errors. The MP4 captures the actual Expo web screen: 12.67 seconds at 780×1688 / 30 fps. The repository also retains copies of the recordings.
+The redesign passed 15 checks across mobile Chrome, desktop Chrome, and WebKit. These cover persistence, keyboard-style viewport resizing and focus, history scrolling, cancellation, storage errors, and reduced motion. Lint, type checking, and web/iOS/Android bundle exports passed. Physical iPhone keyboard verification is still separate. The new recording captures the actual Expo web app at 780×1688 / 30fps for 10.17 seconds.
 
 ## Future deployments
 
