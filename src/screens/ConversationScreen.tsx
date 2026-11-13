@@ -1,7 +1,7 @@
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowUp, ArrowUpRight, Check, CornerDownLeft, Leaf, RotateCcw, X } from 'lucide-react-native';
+import { ArrowUp, ArrowUpRight, Check, Leaf, RotateCcw, X } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { colors, fonts } from '../theme';
 import { type Stage, SUGGESTIONS, useConversation } from '../hooks/useConversation';
@@ -21,7 +21,6 @@ export function ConversationScreen({ framed = false }: { framed?: boolean }) {
   const [input, setInput] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [focused, setFocused] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
   const insets = useSafeAreaInsets();
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const reduced = useReducedMotion();
@@ -141,12 +140,9 @@ export function ConversationScreen({ framed = false }: { framed?: boolean }) {
             <ArrowUp size={18} strokeWidth={1.8} color={canSend ? colors.paper : '#A4ADA0'} />
           </Touch>
         </View>
-        <Touch accessibilityRole="button" accessibilityLabel="About this interactive demo" onPress={() => setShowAbout(value => !value)} style={styles.demoNote}>
-          <View style={styles.demoDot} /><Text style={styles.demoText}>A voice interaction demo</Text><CornerDownLeft size={9} color={colors.subtle} />
-        </Touch>
-        {showAbout && <Animated.View entering={FadeIn.duration(180)} style={styles.about}>
-          <Text style={styles.aboutText}>A scripted conversation to explore motion. No microphone, AI service, or message storage is used.</Text>
-        </Animated.View>}
+        <View style={styles.demoNote}>
+          <View style={styles.demoDot} /><Text style={styles.demoText}>A voice interaction demo</Text>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -200,6 +196,4 @@ const styles = StyleSheet.create({
   demoNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 13, paddingBottom: 3 },
   demoDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#91A27C' },
   demoText: { fontFamily: fonts.regular, fontSize: 8.5, color: '#829077' },
-  about: { position: 'absolute', bottom: 51, left: 24, right: 24, padding: 15, backgroundColor: colors.ink, borderRadius: 15, boxShadow: '0px 8px 22px rgba(25,45,29,0.15)' },
-  aboutText: { fontFamily: fonts.regular, color: '#F3F4E9', fontSize: 11, lineHeight: 18 },
 });

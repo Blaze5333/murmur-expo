@@ -18,7 +18,7 @@ This is a new project, separate from `/Users/mustafa/bliq-mobo-v2`. No Bliq sour
 4. Responding: a reply bubble appears with a spring transition and words stream in.
 5. Complete: the orb shows a check; tap it to try again or reset from the header.
 
-The voice sequence is a clearly labeled simulation; it never requests microphone access. Text input and suggestions use small deterministic local replies, without an AI service. This makes the exercise reproducible and free of accounts, keys, network latency, and message persistence.
+The footer demo label is static; its tappable green info popup was removed at the user’s request so it cannot cover the composer. The voice sequence is a clearly labeled simulation; it never requests microphone access. Text input and suggestions use small deterministic local replies, without an AI service. This makes the exercise reproducible and free of accounts, keys, network latency, and message persistence.
 
 ## Stack and commands
 
@@ -58,6 +58,7 @@ Respect the system reduced-motion preference: stop ambient loops and waveform mo
 
 Implementation is complete. Final local project: `/Users/mustafa/murmur-expo` (a sibling of Bliq, with its own Git repository).
 
+- Footer info popup removed and redeployed at the user’s request. Verified on the public site at 390px and 1440px: clicking the static demo label creates no popup and the composer remains in view. Lint, type checking, and the web export passed after this change.
 - `bun run check`: passed (application and tooling TypeScript checks plus ESLint).
 - `bun run build:web`: passed; only the six used local fonts are exported.
 - `bun run test:e2e`: all 8 checks passed across mobile Chromium and desktop Chrome. Covered the full timeline, three consecutive cancellations with no delayed replies, typed input and duplicate-send protection, prompt suggestions, reduced motion, horizontal overflow, and composer visibility.
