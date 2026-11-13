@@ -4,6 +4,8 @@ A small, polished Expo screen about giving a thought a little room. Tap the livi
 
 This is a **scripted interaction demo**. It does not record audio, call an AI service, or store messages. The same React Native screen runs on iOS, Android, and web; the desktop web layout frames it as a live prototype.
 
+[Live demo](https://murmur-voice-demo.vercel.app) · [Screen capture](https://murmur-voice-demo.vercel.app/demo/murmur-demo.mp4)
+
 ![Murmur desktop preview](public/demo/murmur-desktop.png)
 
 [Shareable GIF](https://raw.githubusercontent.com/Blaze5333/murmur-expo/main/public/demo/murmur-demo.gif) · [Watch the 13-second screen capture](public/demo/murmur-demo.mp4) · [Looping GIF](public/demo/murmur-demo.gif) · [Mobile screenshot](public/demo/murmur-idle.png)
@@ -44,4 +46,4 @@ The deployed `/` is interactive. `/demo/murmur-demo.mp4` and `/demo/murmur-demo.
 
 ## Current verification
 
-Type checking and lint pass, all 8 browser interaction checks pass, and both iOS and Android Hermes bundle exports pass. Native device execution has not been checked. The MP4/GIF are committed and shareable; a working interactive public deployment requires Vercel login or resolution of the GitHub account’s Pages/Actions billing lock. See `SUBMISSION.md` for the verified submission links.
+Type checking and lint pass, all 8 browser interaction checks pass, and both iOS and Android Hermes bundle exports pass. Native device execution has not been checked. The app, MP4, and GIF are publicly available on the permanent Vercel production site. A production prompt/reply interaction passed in unauthenticated Chrome with no browser errors. See `SUBMISSION.md` for verified submission links.

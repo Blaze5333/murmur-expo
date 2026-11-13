@@ -64,8 +64,12 @@ Implementation is complete. Final local project: `/Users/mustafa/murmur-expo` (a
 - Visually inspected mobile idle, mobile reply, and desktop screenshots.
 - Recorded 739 rendered browser frames with Chrome DevTools screencasting and encoded a valid 12.67-second H.264 MP4 at 780×1688 / 30 fps plus a looping 390-pixel-wide GIF. The capture is of the Expo web app, not a native simulator. Final files are in `public/demo/` and included in the exported web build.
 - Clean `bun install --frozen-lockfile`: passed. Both iOS and Android native JavaScript/Hermes exports passed. Native device execution has **not** been verified on this machine; Xcode's simulator tooling is unavailable.
-- Vercel temporary deployment: https://fast-quasar-1vvc8i5.tmp.now (deployment reports ready, but public requests return HTTP 403). It expires **13 November 2026 at 7:46 AM IST** unless the user claims it in their Vercel account. The claim URL is intentionally kept out of committed source because it grants ownership. Anonymous deployment metadata is ignored under `dist/.vercel/`.
-- GitHub repository: https://github.com/Blaze5333/murmur-expo (public, pushed). The recording is permanently available there. Verified direct GIF: https://raw.githubusercontent.com/Blaze5333/murmur-expo/main/public/demo/murmur-demo.gif (HTTP 200). GitHub Pages was configured as a fallback, but GitHub rejected the job before it started with “The job was not started because your account is locked due to a billing issue.” Its workflow is manual-only until the owner resolves account billing. No working hosted interactive URL is claimed. The local interactive preview is http://127.0.0.1:4173/.
+- Permanent Vercel production: https://murmur-voice-demo.vercel.app (owned by `mustafachaiwala2003-6618`, project `murmur-voice-demo`). The local folder is linked to this project; future `bunx --bun vercel --prod` deployments use the same project.
+- Public app, `/demo/murmur-demo.mp4`, and `/demo/murmur-demo.gif` all verified to return HTTP 200 without authentication. Verified a full prompt/reply interaction in unauthenticated Chrome with no browser errors.
+- GitHub repository: https://github.com/Blaze5333/murmur-expo (public, pushed). Recording copies remain committed there.
+- The old anonymous Vercel preview has expired and should no longer be shared. Use the permanent production URL above.
+- Optional GitHub Pages workflow remains manual-only because the GitHub account has an Actions billing lock. Vercel is the active host; Pages is not needed for submission.
+- Vercel CLI stores local project/authentication state in ignored `.vercel/` and `.env.local`. Do not commit or print their contents.
 
 Maintain this section after changes. Do not represent a temporary preview as permanent or imply that browser checks also verified native devices.
 
