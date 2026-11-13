@@ -1,5 +1,11 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## Project context
+
+Read `PROJECT_OVERVIEW.md` before changes and update its implementation, verification, and sharing status after meaningful work. This project is Murmur, a standalone job-application animation exercise. It is separate from Bliq; never copy Bliq credentials, source, or environment files here.
+
+Use Bun only: `bun install --frozen-lockfile`, `bun run check`, and `bunx expo ...`. Commit only `bun.lock`. Keep the deterministic voice simulation clearly identified as a demo. Preserve cancellation, reduced-motion behavior, and the native React Native screen when editing the web showcase.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

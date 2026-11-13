@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "murmur-expo",
+    "name": "Murmur",
     "slug": "murmur-expo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F6F2",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +19,15 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "name": "Murmur — a little space to think out loud",
+      "description": "A carefully made voice interaction. An Expo and Reanimated motion study.",
+      "themeColor": "#F7F6F2",
+      "backgroundColor": "#F7F6F2",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

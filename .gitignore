@@ -39,3 +39,19 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Bun is the only package manager for this project.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Verification intermediates (the final demo lives in public/demo).
+test-results/
+playwright-report/
+artifacts/raw/
+.vercel/
+.env
+.env.*
+
+# Alternate local build target
+dist-pages/
