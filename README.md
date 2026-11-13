@@ -6,7 +6,7 @@ This is a **scripted interaction demo**. It does not record audio, call an AI se
 
 ![Murmur desktop preview](public/demo/murmur-desktop.png)
 
-[Watch the 13-second screen capture](public/demo/murmur-demo.mp4) · [Looping GIF](public/demo/murmur-demo.gif) · [Mobile screenshot](public/demo/murmur-idle.png)
+[Shareable GIF](https://raw.githubusercontent.com/Blaze5333/murmur-expo/main/public/demo/murmur-demo.gif) · [Watch the 13-second screen capture](public/demo/murmur-demo.mp4) · [Looping GIF](public/demo/murmur-demo.gif) · [Mobile screenshot](public/demo/murmur-idle.png)
 
 ## Run with Bun
 
@@ -41,3 +41,7 @@ bunx vercel --prod
 ```
 
 The deployed `/` is interactive. `/demo/murmur-demo.mp4` and `/demo/murmur-demo.gif` are direct screen-capture links suitable for the application field. See `PROJECT_OVERVIEW.md` for implementation context, motion details, and the latest validation and publishing status.
+
+## Current verification
+
+Type checking and lint pass, all 8 browser interaction checks pass, and both iOS and Android Hermes bundle exports pass. Native device execution has not been checked. The MP4/GIF are committed and shareable; a working interactive public deployment requires Vercel login or resolution of the GitHub account’s Pages/Actions billing lock. See `SUBMISSION.md` for the verified submission links.

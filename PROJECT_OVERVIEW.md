@@ -44,6 +44,9 @@ The voice sequence is a clearly labeled simulation; it never requests microphone
 - `scripts/record.ts`: reproducible portrait recording and screenshots.
 - `tests/conversation.spec.ts`: full flow, repeat cancellation, duplicate-send prevention, suggestions, and reduced motion.
 - `vercel.json`: Bun install, web build, and static output.
+- `app.config.ts`: optional `MURMUR_BASE_PATH` for repository-subpath hosting; native and Vercel use the root.
+- `.github/workflows/pages.yml`: manual Pages publishing with Bun, available after the account billing lock is resolved.
+- `SUBMISSION.md`: verified recording/repository links and a short application description.
 
 ## Motion decisions
 
@@ -60,9 +63,9 @@ Implementation is complete. Final local project: `/Users/mustafa/murmur-expo` (a
 - `bun run test:e2e`: all 8 checks passed across mobile Chromium and desktop Chrome. Covered the full timeline, three consecutive cancellations with no delayed replies, typed input and duplicate-send protection, prompt suggestions, reduced motion, horizontal overflow, and composer visibility.
 - Visually inspected mobile idle, mobile reply, and desktop screenshots.
 - Recorded 739 rendered browser frames with Chrome DevTools screencasting and encoded a valid 12.67-second H.264 MP4 at 780×1688 / 30 fps plus a looping 390-pixel-wide GIF. The capture is of the Expo web app, not a native simulator. Final files are in `public/demo/` and included in the exported web build.
-- Native iOS and Android execution has **not** been verified on this machine; Xcode's simulator tooling is unavailable. Android and iOS use the same React Native screen and Expo-compatible dependencies.
+- Clean `bun install --frozen-lockfile`: passed. Both iOS and Android native JavaScript/Hermes exports passed. Native device execution has **not** been verified on this machine; Xcode's simulator tooling is unavailable.
 - Vercel temporary deployment: https://fast-quasar-1vvc8i5.tmp.now (deployment reports ready, but public requests return HTTP 403). It expires **13 November 2026 at 7:46 AM IST** unless the user claims it in their Vercel account. The claim URL is intentionally kept out of committed source because it grants ownership. Anonymous deployment metadata is ignored under `dist/.vercel/`.
-- GitHub repository: https://github.com/Blaze5333/murmur-expo. GitHub Pages publishing is being configured as a durable fallback because the temporary Vercel deployment returns HTTP 403 from both curl and Chrome in this environment.
+- GitHub repository: https://github.com/Blaze5333/murmur-expo (public, pushed). The recording is permanently available there. Verified direct GIF: https://raw.githubusercontent.com/Blaze5333/murmur-expo/main/public/demo/murmur-demo.gif (HTTP 200). GitHub Pages was configured as a fallback, but GitHub rejected the job before it started with “The job was not started because your account is locked due to a billing issue.” Its workflow is manual-only until the owner resolves account billing. No working hosted interactive URL is claimed. The local interactive preview is http://127.0.0.1:4173/.
 
 Maintain this section after changes. Do not represent a temporary preview as permanent or imply that browser checks also verified native devices.
 

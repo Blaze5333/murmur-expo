@@ -1,9 +1,6 @@
 name: Publish Murmur
 
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['README.md', 'PROJECT_OVERVIEW.md', 'SUBMISSION.md']
   workflow_dispatch:
 
 permissions:
